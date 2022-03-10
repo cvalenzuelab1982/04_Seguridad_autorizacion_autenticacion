@@ -7,6 +7,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 
 namespace Seguridad_autorizacion_autenticacion.Controllers
 {
@@ -16,11 +19,13 @@ namespace Seguridad_autorizacion_autenticacion.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public ComentariosController(ApplicationDbContext context, IMapper mapper)
+        public ComentariosController(ApplicationDbContext context, IMapper mapper, UserManager<IdentityUser> userManager)
         {
             _context = context;
             _mapper = mapper;
+            _userManager = userManager;
         }
 
         [HttpGet]
@@ -51,8 +56,16 @@ namespace Seguridad_autorizacion_autenticacion.Controllers
 
 
         [HttpPost]
+        [Authorize(AuthenticationSchemes =JwtBearerDefaults.AuthenticationScheme)]
         public async Task<ActionResult> Post(int libroId, ComentarioCreacionDTO comentarioCreacionDTO)
         {
+            //obtenemos el email del usuario
+            var emailClaim = HttpContext.User.Claims.Where(claim => claim.Type == "email").FirstOrDefault();
+            var email = emailClaim.Value;
+            //atravez del email obtendremos el Id del usuario
+            var usuario = await _userManager.FindByEmailAsync(email);
+            var usuarioId = usuario.Id;
+            
             var existeLibro = await _context.Libros.AnyAsync(libroDB => libroDB.Id == libroId);
             if (!existeLibro)
             {
@@ -61,6 +74,7 @@ namespace Seguridad_autorizacion_autenticacion.Controllers
 
             var comentario = _mapper.Map<Comentario>(comentarioCreacionDTO);
             comentario.LibroId = libroId;
+            comentario.UsuarioId = usuarioId;
             _context.Add(comentario);
             await _context.SaveChangesAsync();
             //return Ok();

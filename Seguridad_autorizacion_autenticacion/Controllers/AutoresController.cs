@@ -10,11 +10,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace Seguridad_autorizacion_autenticacion.Controllers
 {
     [ApiController]
     [Route("api/autores")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy ="EsAdmin")]
     public class AutoresController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -27,6 +29,7 @@ namespace Seguridad_autorizacion_autenticacion.Controllers
         }
 
         [HttpGet] // api/autores
+        [AllowAnonymous] //Permtir consumo del API sin tener autorizacion
         public async Task<ActionResult<List<AutorDTO>>> Get()
         {
             var autores = await _context.Autores.ToListAsync();
